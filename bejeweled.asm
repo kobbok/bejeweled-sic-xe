@@ -1,18 +1,40 @@
 bejwl	START 	0
 		JSUB 	sinit
+		JSUB 	drwbrd
 		LDX 	#3
 		LDA 	#2
-		STCH 	board, X
+		JSUB 	chgem
+		LDX 	#63
+		LDA 	#3
+		JSUB 	chgem
 		JSUB 	drwbrd
 		
 halt	J		halt
 err		J 		err
 
-scrtest
-	LDCH #0
-	
-	+LDB 	#50
-	SUBR 	T, B
+. Change gem
+. A -> new gem id
+. X -> board index
+chgem
+	+STL @stkptr
+	JSUB spush
+	+STX @stkptr
+	JSUB spush
+	+STA @stkptr
+	JSUB spush
+
+	+STCH 	board, X
+	LDCH 	#0
+	+STCH 	brdval, X
+
+	JSUB spop
+	+LDA @stkptr
+	JSUB spop
+	+LDX @stkptr
+	JSUB spop
+	+LDL @stkptr
+	RSUB
+
 . Draws the board
 drwbrd
 	+STL @stkptr
@@ -29,11 +51,14 @@ drwbrd
 	JSUB spush
 
 	LDX 	#0
+	LDA 	#0
 drbdlp
 	. Check if redraw is necessary
 	+LDCH 	brdval, X
 	COMP 	#0
 	JGT 	drlpct
+	LDCH 	#1
+	+STCH 	brdval, X
 
 	. Load gem
 	+LDCH 	board, X
