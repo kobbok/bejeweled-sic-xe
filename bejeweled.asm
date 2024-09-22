@@ -1,12 +1,117 @@
 bejwl	START 	0
 		JSUB 	sinit
-		JSUB 	drwbrd
 		LDA 	#7
 		JSUB 	hlgem
+		LDA 	#2
+		LDX 	#7
+		JSUB 	chgem
+mainlp
+		JSUB 	handlekb
 		JSUB 	drwbrd
+		J mainlp
 		
 halt	J		halt
 err		J 		err
+
+. Handles the keyboard
+handlekb
+	+STL @stkptr
+	JSUB spush
+	+STX @stkptr
+	JSUB spush
+	+STA @stkptr
+	JSUB spush
+	+STB @stkptr
+	JSUB spush
+	+STS @stkptr
+	JSUB spush
+	+STT @stkptr
+	JSUB spush
+
+	+LDCH 	kbptr
+	COMP 	#65 . A
+	JEQ 	kbleft
+	COMP 	#68 . D
+	JEQ 	kbright
+	COMP 	#87 . W
+	JEQ 	kbup
+	COMP 	#83	. S
+	JEQ 	kbdown
+	COMP 	#32	. SPACE
+	JEQ 	kbselect
+	J 		kbend
+
+kbleft
+	+LDA 	hlgemi
+	SUB 	#1
+	LDS 	#0
+	LDT 	#63
+	JSUB 	clamp
+	JSUB 	hlgem
+	J 		kbend
+kbright
+	+LDA 	hlgemi
+	ADD 	#1
+	LDS 	#0
+	LDT 	#63
+	JSUB 	clamp
+	JSUB 	hlgem
+	J 		kbend
+kbdown
+	+LDA 	hlgemi
+	ADD 	#8
+	LDS 	#0
+	LDT 	#63
+	JSUB 	clamp
+	JSUB 	hlgem
+	J 		kbend
+kbup
+	+LDA 	hlgemi
+	SUB 	#8
+	LDS 	#0
+	LDT 	#63
+	JSUB 	clamp
+	JSUB 	hlgem
+	J 		kbend
+kbselect
+	+LDA 	gemsel
+	COMP 	#0
+	JEQ		kbselgem1
+	J 		kbselgem2
+
+kbselgem1
+	+LDA 	#1
+	+STA 	gemsel
+	+LDA 	hlgemi
+	+STA 	selgem
+	J 		kbend
+kbselgem2
+	+LDS 	selgem
+	+LDT 	hlgemi
+	JSUB 	swpgem
+	+LDA 	#0
+	+STA 	gemsel
+	J 		kbend
+
+kbend
+	. cleanup
+	+LDCH 	#0
+	+STCH 	kbptr
+
+	JSUB spop
+	+LDT @stkptr
+	JSUB spop
+	+LDS @stkptr
+	JSUB spop
+	+LDB @stkptr
+	JSUB spop
+	+LDA @stkptr
+	JSUB spop
+	+LDX @stkptr
+	JSUB spop
+	+LDL @stkptr
+	RSUB
+
 
 . Highlight a gem
 . A -> board index to highlight
@@ -33,6 +138,53 @@ hlgem
 	LDCH 	#1
 	+STCH 	hlgemc
 
+	JSUB spop
+	+LDB @stkptr
+	JSUB spop
+	+LDA @stkptr
+	JSUB spop
+	+LDX @stkptr
+	JSUB spop
+	+LDL @stkptr
+	RSUB
+
+. Swap two gems on the board
+. S -> board index 1
+. T -> board index 2
+swpgem
+	+STL @stkptr
+	JSUB spush
+	+STX @stkptr
+	JSUB spush
+	+STA @stkptr
+	JSUB spush
+	+STB @stkptr
+	JSUB spush
+	+STT @stkptr
+	JSUB spush
+	+STS @stkptr
+	JSUB spush
+
+	. load first gem
+	RMO 	S, X
+	+LDCH 	board, X
+	. store the gem in B
+	RMO 	A, B
+	. load second gem
+	RMO 	T, X
+	+LDCH 	board, X
+	. change the first gem index to the second gem
+	RMO 	S, X
+	JSUB 	chgem
+	. change the second gem index to the first gem
+	RMO 	B, A
+	RMO 	T, X
+	JSUB 	chgem
+
+	JSUB spop
+	+LDS @stkptr
+	JSUB spop
+	+LDT @stkptr
 	JSUB spop
 	+LDB @stkptr
 	JSUB spop
@@ -112,7 +264,7 @@ drlpct
 	+LDB 	hlgemi
 	+LDCH 	#0xfc
 	JSUB 	drwHl
-	
+
 drwbrdend
 	JSUB spop
 	+LDT @stkptr
@@ -479,6 +631,32 @@ lndrwnf
 	+LDL	@stkptr
 	RSUB
 
+. Utility clamp functions, clamps the value in A between a max and min
+. A is the thing to clamp
+. S is min
+. T is max
+clamp
+	+STL @stkptr
+	JSUB spush
+
+	COMPR 	A, S
+	JLT 	clunderflow
+	COMPR 	A, T
+	JGT 	cloverflow
+	J 		clend
+
+clunderflow
+	RMO 	S, A
+	J 		clend
+cloverflow
+	RMO 	T, A
+	J 		clend
+
+clend
+	JSUB spop
+	+LDL @stkptr
+	RSUB
+
 . Basic stack functionality routines
 .
 . Initialize the stack, usage:
@@ -524,6 +702,9 @@ stklen	EQU	stkend - stack
 gscrptr	EQU		0xA000
 gscrw 	EQU		128
 gscrh 	EQU		128
+
+. keyboard is just a byte with the value of the key being pressed
+kbptr 	EQU 	0xF000
 
 . 8x8 game board
 board 	RESB 	64
