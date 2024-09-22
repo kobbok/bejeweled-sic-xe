@@ -30,6 +30,8 @@ hlgem
 
 	. highlight new
 	+STB 	hlgemi
+	LDCH 	#1
+	+STCH 	hlgemc
 
 	JSUB spop
 	+LDB @stkptr
@@ -99,10 +101,19 @@ drlpct
 	TIX 	#64
 	JLT 	drbdlp
 
+	. Highlight the gem if necessary
+	+LDCH 	hlgemc
+	COMP 	#1
+	JLT 	drwbrdend
+	JGT 	drwbrdend
+
+	+LDCH 	#0
+	+STCH 	hlgemc
 	+LDB 	hlgemi
 	+LDCH 	#0xfc
 	JSUB 	drwHl
 	
+drwbrdend
 	JSUB spop
 	+LDT @stkptr
 	JSUB spop
@@ -521,6 +532,7 @@ brdval 	RESB 	64
 gemsel	WORD 	0 	. wether a gem is selected
 selgem	WORD 	0	. the selected gem board index
 hlgemi	WORD 	0 	. the currently highlighted gem board index
+hlgemc 	BYTE 	0 	. if the highlighted gem board index was changed this cycle
 
 atlasw 	EQU 	64
 sprtmap EQU 	*
