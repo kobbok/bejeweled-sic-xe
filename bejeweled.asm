@@ -1,72 +1,24 @@
 bejwl	START 	0
 		JSUB 	sinit
+
 		LDX 	#0
-mainlp
-		RMO 	X, A
-		MUL 	#16
-		RMO 	A, T
-		LDA 	#0
-		LDB 	#0
 		LDS 	#0
-		JSUB 	drwsprf
+		LDA 	#1
+		SUBR 	A, S
+mainlp
+		LDA 	#1
+		ADDR 	A, S
+		LDA 	#4
+		COMPR 	A, S
+		JGT 	maindrw
 
-		RMO 	X, A
-		MUL 	#16
-		RMO 	A, T
-		LDA 	#0
-		LDB 	#16
-		LDS 	#16
-		JSUB 	drwsprf
+		SUBR 	A, S
+maindrw
+		RMO 	S, A
+		RMO 	X, B
+		JSUB 	drwgem
 
-		RMO 	X, A
-		MUL 	#16
-		RMO 	A, T
-		LDA 	#0
-		LDB 	#32
-		LDS 	#32
-		JSUB 	drwsprf
-
-		RMO 	X, A
-		MUL 	#16
-		RMO 	A, T
-		LDA 	#0
-		LDB 	#48
-		LDS 	#48
-		JSUB 	drwsprf
-
-		RMO 	X, A
-		MUL 	#16
-		RMO 	A, T
-		LDA 	#0
-		LDB 	#0
-		LDS 	#64
-		JSUB 	drwsprf
-
-		RMO 	X, A
-		MUL 	#16
-		RMO 	A, T
-		LDA 	#0
-		LDB 	#16
-		LDS 	#80
-		JSUB 	drwsprf
-
-		RMO 	X, A
-		MUL 	#16
-		RMO 	A, T
-		LDA 	#0
-		LDB 	#32
-		LDS 	#96
-		JSUB 	drwsprf
-
-		RMO 	X, A
-		MUL 	#16
-		RMO 	A, T
-		LDA 	#0
-		LDB 	#48
-		LDS 	#112
-		JSUB 	drwsprf
-
-		TIX 	#8
+		TIX 	#64
 		JLT 	mainlp
 halt	J		halt
 err		J 		err
@@ -102,9 +54,8 @@ drwgem
 	RMO 	A, T
 	. X_idx = b_idx - Y_idx * board_col_count
 	MUL 	#8 . board_col_count = 8
-	MUL 	#-1
-	ADDR 	B, A
-	RMO 	A, S
+	SUBR 	A, B
+	RMO 	B, S
 
 	. They are both not screen coordinates, so we need to adjust them
 	LDA 	#16 . board_to_screen_coords = 16
@@ -126,6 +77,10 @@ drwgem
 	LDA 	#16 . sprite_size = 16
 	MULR 	A, X
 	MULR 	A, B
+	RMO 	B, A
+	RMO 	X, B
+
+	JSUB drwsprf
 	
 	JSUB spop
 	+LDT @stkptr
