@@ -1,25 +1,10 @@
 bejwl	START 	0
 		JSUB 	sinit
-
-		LDX 	#0
-		LDS 	#0
-		LDA 	#1
-		SUBR 	A, S
-mainlp
-		LDA 	#1
-		ADDR 	A, S
-		LDA 	#4
-		COMPR 	A, S
-		JGT 	maindrw
-
-		SUBR 	A, S
-maindrw
-		RMO 	S, A
-		RMO 	X, B
-		JSUB 	drwgem
-
-		TIX 	#64
-		JLT 	mainlp
+		LDX 	#3
+		LDA 	#2
+		STCH 	board, X
+		JSUB 	drwbrd
+		
 halt	J		halt
 err		J 		err
 
@@ -28,6 +13,51 @@ scrtest
 	
 	+LDB 	#50
 	SUBR 	T, B
+. Draws the board
+drwbrd
+	+STL @stkptr
+	JSUB spush
+	+STX @stkptr
+	JSUB spush
+	+STA @stkptr
+	JSUB spush
+	+STB @stkptr
+	JSUB spush
+	+STS @stkptr
+	JSUB spush
+	+STT @stkptr
+	JSUB spush
+
+	LDX 	#0
+drbdlp
+	. Check if redraw is necessary
+	+LDCH 	brdval, X
+	COMP 	#0
+	JGT 	drlpct
+
+	. Load gem
+	+LDCH 	board, X
+	. Load board index
+	RMO 	X, B
+	JSUB 	drwgem
+
+drlpct
+	TIX 	#64
+	JLT 	drbdlp
+	
+	JSUB spop
+	+LDT @stkptr
+	JSUB spop
+	+LDS @stkptr
+	JSUB spop
+	+LDB @stkptr
+	JSUB spop
+	+LDA @stkptr
+	JSUB spop
+	+LDX @stkptr
+	JSUB spop
+	+LDL @stkptr
+	RSUB
 
 . Draws a gem
 . Gem id in register A
@@ -310,10 +340,11 @@ gscrptr	EQU		0xA000
 gscrw 	EQU		128
 gscrh 	EQU		128
 
-drawptr RESW 	1
-sprtptr RESW 	1
+. 8x8 game board
+board 	RESB 	64
+. Wether the currently displayed board index is valid
+brdval 	RESB 	64
 
-		RESB 	5
 atlasw 	EQU 	64
 sprtmap EQU 	*
 sprites	
