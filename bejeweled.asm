@@ -1,16 +1,45 @@
 bejwl	START 	0
 		JSUB 	sinit
 		JSUB 	drwbrd
-		LDX 	#3
-		LDA 	#2
-		JSUB 	chgem
-		LDX 	#63
-		LDA 	#3
-		JSUB 	chgem
+		LDA 	#7
+		JSUB 	hlgem
 		JSUB 	drwbrd
 		
 halt	J		halt
 err		J 		err
+
+. Highlight a gem
+. A -> board index to highlight
+hlgem
+	+STL @stkptr
+	JSUB spush
+	+STX @stkptr
+	JSUB spush
+	+STA @stkptr
+	JSUB spush
+	+STB @stkptr
+	JSUB spush
+
+	. temporarily store the index
+	RMO 	A, B
+
+	. mark previously highlighted as needing a redraw
+	+LDX 	hlgemi
+	LDCH 	#0
+	+STCH 	brdval, X
+
+	. highlight new
+	+STB 	hlgemi
+
+	JSUB spop
+	+LDB @stkptr
+	JSUB spop
+	+LDA @stkptr
+	JSUB spop
+	+LDX @stkptr
+	JSUB spop
+	+LDL @stkptr
+	RSUB
 
 . Change gem
 . A -> new gem id
@@ -69,6 +98,126 @@ drbdlp
 drlpct
 	TIX 	#64
 	JLT 	drbdlp
+
+	+LDB 	hlgemi
+	+LDCH 	#0xfc
+	JSUB 	drwHl
+	
+	JSUB spop
+	+LDT @stkptr
+	JSUB spop
+	+LDS @stkptr
+	JSUB spop
+	+LDB @stkptr
+	JSUB spop
+	+LDA @stkptr
+	JSUB spop
+	+LDX @stkptr
+	JSUB spop
+	+LDL @stkptr
+	RSUB
+
+. Draws the highlight around a gem on the board
+. B -> board index
+. A -> color (1 byte)
+drwHl
+	+STL @stkptr
+	JSUB spush
+	+STX @stkptr
+	JSUB spush
+	+STA @stkptr
+	JSUB spush
+	+STB @stkptr
+	JSUB spush
+	+STS @stkptr
+	JSUB spush
+	+STT @stkptr
+	JSUB spush
+
+	. Temporarily store the color in X
+	RMO 	A, X
+
+	. Calculate screen X and Y 
+	. Y_idx = b_idx / board_col_count , this must trunacte it
+	RMO 	B, A
+	DIV 	#8	. board_col_count = 8
+	RMO 	A, T
+	. X_idx = b_idx - Y_idx * board_col_count
+	MUL 	#8 . board_col_count = 8
+	SUBR 	A, B
+	RMO 	B, S
+
+	. They are both not screen coordinates, so we need to adjust them
+	LDA 	#16 . board_to_screen_coords = 16
+	MULR 	A, S
+	MULR 	A, T
+
+	. Need to move it since X will be set
+	RMO 	X, B . color will be in B until we need it, since A and X are both going to be used
+	
+	. Calculate the screen index
+	RMO 	T, A
+	MUL 	#gscrw
+	ADDR 	S, A
+	RMO 	A, X . X now contains the offset from gscptr to the first pixel
+
+	. S and T are no longer required
+	. We'll use S for comparison
+	ADD 	#16
+	RMO 	A, S
+
+	. Load color
+	RMO 	B, A
+
+	. Draw top line
+tplnhl
+	+STCH 	gscrptr, X
+	TIXR 	S
+	JLT 	tplnhl
+
+	. Next 14 lines are just leftmost pixel and rightmost pixel
+	. S will be used to know when we reach line 16
+	+LDA 	#gscrw
+	MUL 	#14
+	ADDR 	A, S
+
+	. Will be used to increase X
+	+LDA 	#gscrw
+	SUB 	#16 	. we need to move from last pixel to first in next line
+	RMO		A, T
+	+LDL 	#15
+
+	. Load color back in
+	RMO 	B, A
+
+	. Move to next line
+	ADDR 	T, X
+sidelnhl
+	. color first pixel
+	+STCH 	gscrptr, X
+	. Move to last pixel in line to be colored
+	ADDR 	L, X
+	. color last pixel
+	+STCH 	gscrptr, X
+	. Move to next line
+	ADDR 	T, X
+	. We're one short, so we increment X by 1
+	TIXR 	S
+	JLT 	sidelnhl
+
+	. Now we have to draw the bottom line
+	. S is in line 15, so we move it to line 16
+	+LDA 	#gscrw
+	ADDR 	A, S
+
+	. Load color
+	RMO 	B, A
+	
+	. Draw bottom line
+botlnhl
+	+STCH 	gscrptr, X
+	TIXR 	S
+	JLT 	botlnhl
 	
 	JSUB spop
 	+LDT @stkptr
@@ -369,6 +518,9 @@ gscrh 	EQU		128
 board 	RESB 	64
 . Wether the currently displayed board index is valid
 brdval 	RESB 	64
+gemsel	WORD 	0 	. wether a gem is selected
+selgem	WORD 	0	. the selected gem board index
+hlgemi	WORD 	0 	. the currently highlighted gem board index
 
 atlasw 	EQU 	64
 sprtmap EQU 	*
