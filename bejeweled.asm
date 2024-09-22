@@ -91,6 +91,8 @@ kbselgem2
 	JSUB 	swpgem
 	+LDA 	#0
 	+STA 	gemsel
+	+LDCH 	#1
+	+STCH 	hlgemc
 	J 		kbend
 
 kbend
@@ -256,13 +258,23 @@ drlpct
 	. Highlight the gem if necessary
 	+LDCH 	hlgemc
 	COMP 	#1
-	JLT 	drwbrdend
-	JGT 	drwbrdend
+	JLT 	drwhlsel
+	JGT 	drwhlsel
 
 	+LDCH 	#0
 	+STCH 	hlgemc
 	+LDB 	hlgemi
 	+LDCH 	#0xfc
+	JSUB 	drwHl
+
+drwhlsel
+	+LDA 	gemsel
+	COMP 	#1
+	JLT 	drwbrdend
+	JGT 	drwbrdend
+
+	+LDB 	selgem
+	+LDCH 	#0xfd
 	JSUB 	drwHl
 
 drwbrdend
