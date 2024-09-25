@@ -13,6 +13,37 @@ mainlp
 halt	J		halt
 err		J 		err
 
+. Checks the board for any matches, and processes them
+chkmatches
+	+STL @stkptr
+	JSUB spush
+	+STX @stkptr
+	JSUB spush
+	+STA @stkptr
+	JSUB spush
+	+STB @stkptr
+	JSUB spush
+	+STS @stkptr
+	JSUB spush
+	+STT @stkptr
+	JSUB spush
+
+	
+
+	JSUB spop
+	+LDT @stkptr
+	JSUB spop
+	+LDS @stkptr
+	JSUB spop
+	+LDB @stkptr
+	JSUB spop
+	+LDA @stkptr
+	JSUB spop
+	+LDX @stkptr
+	JSUB spop
+	+LDL @stkptr
+	RSUB
+
 . Handles the keyboard
 handlekb
 	+STL @stkptr
@@ -28,64 +59,65 @@ handlekb
 	+STT @stkptr
 	JSUB spush
 
+	+LDA 	gemsel
+	COMP 	#0
+	JEQ		pregemsel
+	J 		postgemsel
+
+pregemsel
 	+LDCH 	kbptr
 	COMP 	#65 . A
-	JEQ 	kbleft
+	LDB 	#2
+	JEQ		kbmove
 	COMP 	#68 . D
-	JEQ 	kbright
+	LDB 	#0
+	JEQ 	kbmove
 	COMP 	#87 . W
-	JEQ 	kbup
+	LDB 	#1
+	JEQ 	kbmove
 	COMP 	#83	. S
-	JEQ 	kbdown
+	LDB 	#3
+	JEQ 	kbmove
 	COMP 	#32	. SPACE
 	JEQ 	kbselect
 	J 		kbend
 
-kbleft
+kbmove
 	+LDA 	hlgemi
-	SUB 	#1
-	LDS 	#0
-	LDT 	#63
-	JSUB 	clamp
-	JSUB 	hlgem
-	J 		kbend
-kbright
-	+LDA 	hlgemi
-	ADD 	#1
-	LDS 	#0
-	LDT 	#63
-	JSUB 	clamp
-	JSUB 	hlgem
-	J 		kbend
-kbdown
-	+LDA 	hlgemi
-	ADD 	#8
-	LDS 	#0
-	LDT 	#63
-	JSUB 	clamp
-	JSUB 	hlgem
-	J 		kbend
-kbup
-	+LDA 	hlgemi
-	SUB 	#8
-	LDS 	#0
-	LDT 	#63
-	JSUB 	clamp
+	JSUB 	movelbd
 	JSUB 	hlgem
 	J 		kbend
 kbselect
-	+LDA 	gemsel
-	COMP 	#0
-	JEQ		kbselgem1
-	J 		kbselgem2
-
-kbselgem1
 	+LDA 	#1
 	+STA 	gemsel
 	+LDA 	hlgemi
 	+STA 	selgem
 	J 		kbend
-kbselgem2
+
+postgemsel
+	+LDCH 	kbptr
+	COMP 	#65 . A
+	LDB 	#2
+	JEQ 	kbmovesel
+	COMP 	#68 . D
+	LDB 	#0
+	JEQ 	kbmovesel
+	COMP 	#87 . W
+	LDB 	#1
+	JEQ 	kbmovesel
+	COMP 	#83	. S
+	LDB 	#3
+	JEQ 	kbmovesel
+	COMP 	#32	. SPACE
+	JEQ 	kbselectsel
+	J 		kbend
+
+kbmovesel
+	+LDA 	selgem
+	JSUB 	movelbd
+	JSUB 	hlgem
+	J 		kbend
+kbselectsel
 	+LDS 	selgem
 	+LDT 	hlgemi
 	JSUB 	swpgem
@@ -641,6 +673,140 @@ lndrwnf
 	+LDX	@stkptr
 	JSUB	spop
 	+LDL	@stkptr
+	RSUB
+
+. Moves the provided index logically on the board in the cardinal directions
+. A is the index
+. B is the direction in which to move
+.   0 -> right, 1 -> up, 2 -> left, 3 -> down
+movelbd
+	+STL @stkptr
+	JSUB spush
+	+STB @stkptr
+	JSUB spush
+	+STS @stkptr
+	JSUB spush
+	+STT @stkptr
+	JSUB spush
+
+	. jump to correct spot
+	LDS 	#1
+	COMPR 	B, S
+	JLT 	mvright
+	JEQ 	mvup
+	LDS 	#3
+	COMPR 	B, S
+	JLT 	mvleft
+	JEQ 	mvdown
+	J 		err 	. invalid value provided
+
+mvright
+	. Make a copy of A since math will be happening in A
+	RMO 	A, B
+	. calculate maximal index (truncate to same row)
+	DIV 	#8 . board width
+	MUL 	#8 . truncate it
+	ADD 	#7 . board width - 1
+
+	. make sure it does not go over 63
+	LDS 	#0 . dummy value, that needs to be smaller than A, we use min board index
+	LDT 	#63
+	JSUB 	clamp
+
+	. Result is new MAX
+	RMO 	A, T
+
+	RMO 	B, A
+	ADD 	#1
+	LDS 	#0
+	. MAX is already loaded
+	JSUB 	clamp
+	J 		mvend
+
+mvleft
+	. Make a copy of A since math will be happening in A
+	RMO 	A, B
+	. calculate minimal index (truncate to same row)
+	DIV 	#8 . board width
+	MUL 	#8 . truncate it
+
+	. make sure it does not go under 0
+	LDS 	#0
+	LDT 	#63 . dummy value, that needs to be larger than A, we use max board index
+	JSUB 	clamp
+
+	. Result is new MIN
+	RMO 	A, S
+
+	RMO 	B, A
+	SUB 	#1
+	. MIN is already loaded
+	LDT 	#63
+	JSUB 	clamp
+	J 		mvend
+
+mvdown
+	. Make a copy of A since math will be happening in A
+	RMO 	A, B
+	. We need to calculate the index in row
+	. Get the minimal row index
+	DIV 	#8 . board width
+	MUL 	#8 . truncate it
+
+	. Calculate index - minimal row index = index in row
+	RMO 	A, S
+	RMO 	B, A
+	SUBR 	S, A
+
+	. Guaranteed to be in range [0, 7]
+
+	. Move it to last row (+7*8=+56)
+	ADD 	#56
+
+	. Result is new MAX
+	RMO 	A, T
+
+	RMO 	B, A
+	ADD 	#8 . board width
+	LDS 	#0
+	. MAX is already loaded
+	JSUB 	clamp
+	J 		mvend
+
+mvup
+	. Make a copy of A since math will be happening in A
+	RMO 	A, B
+	. We need to calculate the index in row
+	. Get the minimal row index
+	DIV 	#8 . board width
+	MUL 	#8 . truncate it
+
+	. Calculate index - minimal row index = index in row
+	RMO 	A, S
+	RMO 	B, A
+	SUBR 	S, A
+
+	. Guaranteed to be in range [0, 7]
+
+	. Result is new MIN
+	RMO 	A, S
+
+	RMO 	B, A
+	SUB 	#8 . board width
+	. MIN is already loaded
+	LDT 	#63
+	JSUB 	clamp
+	J 		mvend
+
+mvend
+	JSUB spop
+	+LDT @stkptr
+	JSUB spop
+	+LDS @stkptr
+	JSUB spop
+	+LDB @stkptr
+	JSUB spop
+	+LDL @stkptr
 	RSUB
 
 . Utility clamp functions, clamps the value in A between a max and min
