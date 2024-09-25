@@ -1,7 +1,7 @@
 
 sprite_map = []
 
-with open("Untitled.bmp", "rb") as f:
+with open("sprites.bmp", "rb") as f:
     header = f.read(54)
     color_count = header[50]
     print(f"Ignoring bytes: {header}, we have {color_count} colors")
