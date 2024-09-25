@@ -2,46 +2,19 @@ bejwl	START 	0
 		JSUB 	sinit
 		LDA 	#27
 		JSUB 	hlgem
-		LDA 	#2
-		LDX 	#2
+		LDA 	#0
+		LDX 	#0
+		LDS 	#4
+prepbd
 		JSUB 	chgem
-		LDX 	#5
-		JSUB 	chgem
-
-		LDX 	#10
-		JSUB 	chgem
-		LDX 	#13
-		JSUB 	chgem
-
-		LDX 	#18
-		JSUB 	chgem
-		LDX 	#21
-		JSUB 	chgem
-		
-		LDX 	#26
-		JSUB 	chgem
-		LDX 	#29
-		JSUB 	chgem
-		
-		LDX 	#34
-		JSUB 	chgem
-		LDX 	#37
-		JSUB 	chgem
-		
-		LDX 	#42
-		JSUB 	chgem
-		LDX 	#45
-		JSUB 	chgem
-		
-		LDX 	#50
-		JSUB 	chgem
-		LDX 	#53
-		JSUB 	chgem
-		
-		LDX 	#58
-		JSUB 	chgem
-		LDX 	#61
-		JSUB 	chgem
+		ADD 	#1
+		COMPR 	A, S
+		JLT 	prepb2
+		SUBR 	S, A
+		ADD 	#1
+prepb2
+		TIX 	#63
+		JLT 	prepbd
 
 		JSUB 	drwbrd
 mainlp
