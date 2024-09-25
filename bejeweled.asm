@@ -1,12 +1,52 @@
 bejwl	START 	0
 		JSUB 	sinit
-		LDA 	#7
+		LDA 	#27
 		JSUB 	hlgem
 		LDA 	#2
-		LDX 	#7
+		LDX 	#2
 		JSUB 	chgem
+		LDX 	#5
+		JSUB 	chgem
+
+		LDX 	#10
+		JSUB 	chgem
+		LDX 	#13
+		JSUB 	chgem
+
+		LDX 	#18
+		JSUB 	chgem
+		LDX 	#21
+		JSUB 	chgem
+		
+		LDX 	#26
+		JSUB 	chgem
+		LDX 	#29
+		JSUB 	chgem
+		
+		LDX 	#34
+		JSUB 	chgem
+		LDX 	#37
+		JSUB 	chgem
+		
+		LDX 	#42
+		JSUB 	chgem
+		LDX 	#45
+		JSUB 	chgem
+		
+		LDX 	#50
+		JSUB 	chgem
+		LDX 	#53
+		JSUB 	chgem
+		
+		LDX 	#58
+		JSUB 	chgem
+		LDX 	#61
+		JSUB 	chgem
+
+		JSUB 	drwbrd
 mainlp
 		JSUB 	handlekb
+		JSUB 	chkmatches
 		JSUB 	drwbrd
 		J mainlp
 		
@@ -28,12 +68,139 @@ chkmatches
 	+STT @stkptr
 	JSUB spush
 
-	
+	. X will be used to iterate over the rows
+	LDX 	#0
+
+	. Check rows
+chrows
+	JSUB 	chkrow
+	TIX 	#8
+	JLT 	chrows
+
+	. Check columns
 
 	JSUB spop
 	+LDT @stkptr
 	JSUB spop
 	+LDS @stkptr
+	JSUB spop
+	+LDB @stkptr
+	JSUB spop
+	+LDA @stkptr
+	JSUB spop
+	+LDX @stkptr
+	JSUB spop
+	+LDL @stkptr
+	RSUB
+	
+. Checks the row of the board for any matches and processes them
+. X holds the row to process
+chkrow
+	+STL @stkptr
+	JSUB spush
+	+STX @stkptr
+	JSUB spush
+	+STA @stkptr
+	JSUB spush
+	+STB @stkptr
+	JSUB spush
+	+STS @stkptr
+	JSUB spush
+	+STT @stkptr
+	JSUB spush
+
+	. L will be used as general purpose register, for short operations (its value does not survive JSUB instructions)
+	. A will be used to load the gem to be compared to value in register S
+	. S will hold the gem color to match
+	LDS 	#0xFF
+	. T will hold the amount of gems matched
+	LDT 	#0
+	. X will be used to iterate over the board
+	. We start on row X*8
+	LDB 	#8
+	MULR 	B, X
+	RMO 	X, B
+	LDL 	#7
+	. B will hold the final index of the row
+	ADDR 	L, B
+
+	. Check row
+	+LDCH 	board, X
+	RMO 	A, S
+chkrlp
+	. Load in a gem
+	+LDCH 	board, X
+	COMPR 	A, S
+	JEQ 	chkrismatch
+	J 		chkrnomatch
+
+chkrismatch
+	LDL 	#1
+	ADDR 	L, T
+	J 		chkrend
+
+chkrnomatch
+	LDL 	#3
+	COMPR 	T, L . if 3 are matched we will need to destroy them
+	JLT		chkrnodestroy
+	JSUB 	hgemdestroy
+chkrnodestroy
+	RMO 	A, S
+	LDT 	#1
+	J 		chkrend
+
+chkrend
+	TIXR 	B
+	JLT 	chkrlp
+	JEQ 	chkrlp
+	
+	. At the end of the row check if we matched all of them by chance
+	LDL 	#3
+	COMPR 	T, L . if 3 are matched we will need to destroy them
+	JLT		chkreend
+	JSUB 	hgemdestroy
+
+chkreend
+	JSUB spop
+	+LDT @stkptr
+	JSUB spop
+	+LDS @stkptr
+	JSUB spop
+	+LDB @stkptr
+	JSUB spop
+	+LDA @stkptr
+	JSUB spop
+	+LDX @stkptr
+	JSUB spop
+	+LDL @stkptr
+	RSUB
+
+. Destroyes the gems in a row
+. T amount of gems to destroy
+. X last index (exclusive) to destroy
+hgemdestroy
+	+STL @stkptr
+	JSUB spush
+	+STX @stkptr
+	JSUB spush
+	+STA @stkptr
+	JSUB spush
+	+STB @stkptr
+	JSUB spush
+	+STT @stkptr
+	JSUB spush
+
+	RMO 	X, B
+	SUBR 	T, X
+hgdlp
+	. Mark gem as destroyed
+	LDCH 	#gemdst
+	JSUB 	chgem
+	TIXR 	B
+	JLT 	hgdlp
+
+	JSUB spop
+	+LDT @stkptr
 	JSUB spop
 	+LDB @stkptr
 	JSUB spop
@@ -59,6 +226,13 @@ handlekb
 	+STT @stkptr
 	JSUB spush
 
+kbnoin
+	+LDCH 	kbptr
+	COMP	#0
+	JEQ		kbnoin
+	J 		kbgotin
+
+kbgotin
 	+LDA 	gemsel
 	COMP 	#0
 	JEQ		pregemsel
@@ -893,6 +1067,7 @@ selgem	WORD 	0	. the selected gem board index
 hlgemi	WORD 	0 	. the currently highlighted gem board index
 hlgemc 	BYTE 	0 	. if the highlighted gem board index was changed this cycle
 
+gemdst  EQU 	1
 atlasw 	EQU 	64
 sprtmap EQU 	*
 sprites	
