@@ -68,16 +68,19 @@ chkmatches
 	+STT @stkptr
 	JSUB spush
 
-	. X will be used to iterate over the rows
 	LDX 	#0
-
 	. Check rows
 chrows
 	JSUB 	chkrow
 	TIX 	#8
 	JLT 	chrows
 
+	LDX 	#0
 	. Check columns
+chcols
+	JSUB 	chkcol
+	TIX 	#8
+	JLT 	chcols
 
 	JSUB spop
 	+LDT @stkptr
@@ -175,6 +178,88 @@ chkreend
 	+LDL @stkptr
 	RSUB
 
+. Checks the column of the board for any matches and processes them
+. X holds the column to process
+chkcol
+	+STL @stkptr
+	JSUB spush
+	+STX @stkptr
+	JSUB spush
+	+STA @stkptr
+	JSUB spush
+	+STB @stkptr
+	JSUB spush
+	+STS @stkptr
+	JSUB spush
+	+STT @stkptr
+	JSUB spush
+
+	. L will be used as general purpose register, for short operations (its value does not survive JSUB instructions)
+	. A will be used to load the gem to be compared to value in register S
+	. S will hold the gem color to match
+	LDS 	#0xFF
+	. T will hold the amount of gems matched
+	LDT 	#0
+	. X will be used to iterate over the board
+	. We start on column X
+	RMO 	X, B
+	LDL 	#56
+	. B will hold the final index of the column
+	ADDR 	L, B
+
+	. Check column
+	+LDCH 	board, X
+	RMO 	A, S
+chkclp
+	. Load in a gem
+	+LDCH 	board, X
+	COMPR 	A, S
+	JEQ 	chkcismatch
+	J 		chkcnomatch
+
+chkcismatch
+	LDL 	#1
+	ADDR 	L, T
+	J 		chkcend
+
+chkcnomatch
+	LDL 	#3
+	COMPR 	T, L . if 3 are matched we will need to destroy them
+	JLT		chkcnodestroy
+	JSUB 	vgemdestroy
+chkcnodestroy
+	RMO 	A, S
+	LDT 	#1
+	J 		chkcend
+
+chkcend
+	LDA 	#8
+	ADDR 	A, X
+	COMPR 	X, B
+	JLT 	chkclp
+	JEQ 	chkclp
+	
+	. At the end of the row check if we matched all of them by chance
+	LDL 	#3
+	COMPR 	T, L . if 3 are matched we will need to destroy them
+	JLT		chkceend
+	JSUB 	vgemdestroy
+
+chkceend
+	JSUB spop
+	+LDT @stkptr
+	JSUB spop
+	+LDS @stkptr
+	JSUB spop
+	+LDB @stkptr
+	JSUB spop
+	+LDA @stkptr
+	JSUB spop
+	+LDX @stkptr
+	JSUB spop
+	+LDL @stkptr
+	RSUB
+
 . Destroyes the gems in a row
 . T amount of gems to destroy
 . X last index (exclusive) to destroy
@@ -198,6 +283,48 @@ hgdlp
 	JSUB 	chgem
 	TIXR 	B
 	JLT 	hgdlp
+
+	JSUB spop
+	+LDT @stkptr
+	JSUB spop
+	+LDB @stkptr
+	JSUB spop
+	+LDA @stkptr
+	JSUB spop
+	+LDX @stkptr
+	JSUB spop
+	+LDL @stkptr
+	RSUB
+
+. Destroyes the gems in a column
+. T amount of gems to destroy
+. X last index (exclusive) to destroy
+vgemdestroy
+	+STL @stkptr
+	JSUB spush
+	+STX @stkptr
+	JSUB spush
+	+STA @stkptr
+	JSUB spush
+	+STB @stkptr
+	JSUB spush
+	+STT @stkptr
+	JSUB spush
+
+	RMO 	X, B
+	LDA 	#8
+	MULR 	A, T
+	SUBR 	T, X
+vgdlp
+	. Mark gem as destroyed
+	LDCH 	#gemdst
+	JSUB 	chgem
+	. Move 1 down
+	LDA 	#8
+	ADDR 	A, X
+	. Check if we need to delete more gems
+	COMPR 	X, B
+	JLT 	vgdlp
 
 	JSUB spop
 	+LDT @stkptr
