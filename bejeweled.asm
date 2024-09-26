@@ -1109,6 +1109,15 @@ clend
 	+LDL @stkptr
 	RSUB
 
+. SIC/XE does not have a not operation because why have it
+. We abuse 2's complement to implement it
+not
+	+STA 	tmpnot
+	LDA 	#0
+	SUB 	#1
+	SUB 	tmpnot
+	RSUB
+
 . Basic stack functionality routines
 .
 . Initialize the stack, usage:
@@ -1166,6 +1175,9 @@ gemsel	WORD 	0 	. wether a gem is selected
 selgem	WORD 	0	. the selected gem board index
 hlgemi	WORD 	0 	. the currently highlighted gem board index
 hlgemc 	BYTE 	0 	. if the highlighted gem board index was changed this cycle
+
+. temporary variable to perform not operation
+tmpnot 	WORD 	0
 
 gemdst  EQU 	1
 atlasw 	EQU 	64
