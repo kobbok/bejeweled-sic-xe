@@ -1083,6 +1083,69 @@ mvend
 	+LDL @stkptr
 	RSUB
 
+. Pseudorandom 24-bit fibonacci LFSR (https://en.wikipedia.org/wiki/Linear-feedback_shift_register)
+. The polinomial x^24 + x^23 + x^22 + x^17 + 1 is used, which coresponds to taps 0xE10000
+. XORS were used originally, but it is really slow since its simulated, so instead we cleverly use ADD
+. we just have to be careful to not overflow, and we get the same functionality as XOR
+. Returns the new number in A, but also places it in seed
+lfsr24
+	+STL @stkptr
+	JSUB spush
+	+STS @stkptr
+	JSUB spush
+
+	. init registers
+	LDS 	#0
+
+	. done this way to avoid overflow when adding
+	. lfsr, x^24
+	+LDA 	seed
+	AND 	#1
+	ADDR 	A, S
+
+	. lfsr >> 1, x^23
+	+LDA 	seed
+	SHIFTR 	A, 1
+	AND 	#1
+	ADDR 	A, S
+
+	. lfsr >> 2, x^22
+	+LDA 	seed
+	SHIFTR 	A, 2
+	AND 	#1
+	ADDR 	A, S
+
+	. lfsr >> 7, x^17
+	+LDA 	seed
+	SHIFTR 	A, 7
+	AND 	#1
+	ADDR 	A, S
+
+	. new bit is calculated and moved into S
+	RMO 	S, A
+	AND 	#1
+	RMO 	A, S
+	
+	. bit << 23
+	SHIFTL	S, 16
+	SHIFTL 	S, 7
+
+	. lfsr >> 1
+	+LDA 	seed
+	SHIFTR 	A, 1
+
+	. OR lfsr >> 1 | bit << 23
+	+STS 	seed
+	OR 		seed
+
+	+STA 	seed
+
+	JSUB spop
+	+LDS @stkptr
+	JSUB spop
+	+LDL @stkptr
+	RSUB
+
 . Utility clamp functions, clamps the value in A between a max and min
 . A is the thing to clamp
 . S is min
@@ -1209,6 +1272,8 @@ hlgemc 	BYTE 	0 	. if the highlighted gem board index was changed this cycle
 
 . temporary variable to perform not operation
 tmpnot 	WORD 	0
+. The seed used to generate numbers (pseudo randum, 2 bytes, must be non 0)
+seed	WORD	0x1234
 xora	RESW 	1
 xorb	RESW 	2
 
