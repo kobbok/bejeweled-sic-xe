@@ -1132,7 +1132,8 @@ lfsr24
 
 	. lfsr >> 1
 	+LDA 	seed
-	SHIFTR 	A, 1
+	SHIFTR 	A, 1 	. shift right adds a 1 at the left side, we dont want that
+	AND 	shrmsk
 
 	. OR lfsr >> 1 | bit << 23
 	+STS 	seed
@@ -1274,6 +1275,7 @@ hlgemc 	BYTE 	0 	. if the highlighted gem board index was changed this cycle
 tmpnot 	WORD 	0
 . The seed used to generate numbers (pseudo randum, 2 bytes, must be non 0)
 seed	WORD	0x1234
+shrmsk 	WORD 	0x7FFFFF . shift right introduces a 1, for this algorithm we can't have that happend
 xora	RESW 	1
 xorb	RESW 	2
 
