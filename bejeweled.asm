@@ -20,11 +20,137 @@ prepb2
 mainlp
 		JSUB 	handlekb
 		JSUB 	chkmatches
+		JSUB 	prcsdestroyed
 		JSUB 	drwbrd
 		J mainlp
 		
 halt	J		halt
 err		J 		err
+
+. Processes any destroyed gems, by shifting the board down and generating new gems in their place
+prcsdestroyed
+	+STL @stkptr
+	JSUB spush
+	+STX @stkptr
+	JSUB spush
+	+STA @stkptr
+	JSUB spush
+	+STB @stkptr
+	JSUB spush
+	+STS @stkptr
+	JSUB spush
+	+STT @stkptr
+	JSUB spush
+
+	LDX 	#0
+pdlp
+	JSUB 	prcdecol
+	TIX 	#8
+	JLT 	pdlp
+
+	LDX 	#0
+pdrelp
+	+LDCH 	board, X
+	COMP 	#gemdst
+	JLT 	pdrcnt
+	JGT 	pdrcnt
+	JSUB 	lfsr24
+	AND 	#0x3
+	JSUB 	chgem
+pdrcnt
+	TIX 	#64
+	JLT 	pdrelp
+
+	JSUB spop
+	+LDT @stkptr
+	JSUB spop
+	+LDS @stkptr
+	JSUB spop
+	+LDB @stkptr
+	JSUB spop
+	+LDA @stkptr
+	JSUB spop
+	+LDX @stkptr
+	JSUB spop
+	+LDL @stkptr
+	RSUB
+
+. Process any destroyed gems in a column (removing, falling, generating new ones)
+. X the column that should be processed
+prcdecol
+	+STL @stkptr
+	JSUB spush
+	+STX @stkptr
+	JSUB spush
+	+STA @stkptr
+	JSUB spush
+	+STB @stkptr
+	JSUB spush
+	+STS @stkptr
+	JSUB spush
+	+STT @stkptr
+	JSUB spush
+
+	. to know when we have to stop
+	RMO 	X, B
+	LDA 	#8
+	SUBR 	A, B
+	. Start from the bottom
+	LDA 	#56
+	ADDR 	A, X
+	. To keep track of where the next gem found should be placed
+	RMO 	X, T
+pdclop
+	+LDCH 	board, X
+	COMP 	#gemdst
+	JEQ 	pdccnt
+
+	. gem found, put it in the next available spot
+	. check if it is already in the correct spot
+	COMPR 	X, T
+	JEQ 	pdcmvc
+	
+	RMO 	X, S
+	RMO 	T, X
+	JSUB 	chgem
+	RMO 	S, X
+pdcmvc
+	. Move the next available spot up
+	LDS 	#8
+	SUBR 	S, T
+
+pdccnt
+	LDA 	#8
+	SUBR 	A, X
+	COMPR 	X, B
+	JGT 	pdclop
+
+	. If there is left over space, fill them with empty spaces
+	COMPR 	T, B
+	JEQ 	pdcend
+	RMO 	T, X
+pdcelp
+	LDCH 	#gemdst
+	JSUB 	chgem
+	LDA 	#8
+	SUBR 	A, X
+	COMPR 	X, B
+	JGT 	pdcelp
+
+pdcend
+	JSUB spop
+	+LDT @stkptr
+	JSUB spop
+	+LDS @stkptr
+	JSUB spop
+	+LDB @stkptr
+	JSUB spop
+	+LDA @stkptr
+	JSUB spop
+	+LDX @stkptr
+	JSUB spop
+	+LDL @stkptr
+	RSUB
 
 . Checks the board for any matches, and processes them
 chkmatches
@@ -1279,7 +1405,7 @@ shrmsk 	WORD 	0x7FFFFF . shift right introduces a 1, for this algorithm we can't
 xora	RESW 	1
 xorb	RESW 	2
 
-gemdst  EQU 	1
+gemdst  EQU 	5
 atlasw 	EQU 	64
 sprtmap EQU 	*
 sprites	
