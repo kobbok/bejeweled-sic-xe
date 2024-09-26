@@ -1118,6 +1118,37 @@ not
 	SUB 	tmpnot
 	RSUB
 
+. XOR implementation
+. A contains the first word
+. B contains the second word
+. Result is in A
+xor
+	+STL 	@stkptr
+	JSUB 	spush
+	+STB 	@stkptr
+	JSUB 	spush
+
+	. A | B
+	+STA 	xora
+	+STB 	xorb
+	+OR 	xorb
+	RMO 	A, B
+
+	. !A & B
+	+LDA 	xora
+	+AND 	xorb
+	JSUB 	not
+
+	. (A | B) & (!(A & B))
+	+STB 	xorb
+	+AND 	xorb
+
+	JSUB 	spop
+	+LDB 	@stkptr
+	JSUB 	spop
+	+LDL 	@stkptr
+	RSUB
+
 . Basic stack functionality routines
 .
 . Initialize the stack, usage:
@@ -1178,6 +1209,8 @@ hlgemc 	BYTE 	0 	. if the highlighted gem board index was changed this cycle
 
 . temporary variable to perform not operation
 tmpnot 	WORD 	0
+xora	RESW 	1
+xorb	RESW 	2
 
 gemdst  EQU 	1
 atlasw 	EQU 	64
