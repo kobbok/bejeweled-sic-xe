@@ -153,12 +153,11 @@ pdcend
 	RSUB
 
 . Checks the board for any matches, and processes them
+. A returns how many were matched
 chkmatches
 	+STL @stkptr
 	JSUB spush
 	+STX @stkptr
-	JSUB spush
-	+STA @stkptr
 	JSUB spush
 	+STB @stkptr
 	JSUB spush
@@ -167,10 +166,12 @@ chkmatches
 	+STT @stkptr
 	JSUB spush
 
+LDB 	#0
 	LDX 	#0
 	. Check rows
 chrows
 	JSUB 	chkrow
+ADDR 	A, B
 	TIX 	#8
 	JLT 	chrows
 
@@ -178,8 +179,11 @@ chrows
 	. Check columns
 chcols
 	JSUB 	chkcol
+ADDR 	A, B
 	TIX 	#8
 	JLT 	chcols
+
+	RMO 	B, A
 
 	JSUB spop
 	+LDT @stkptr
@@ -187,9 +191,7 @@ chcols
 	+LDS @stkptr
 	JSUB spop
 	+LDB @stkptr
-	JSUB spop
-	+LDA @stkptr
-	JSUB spop
+		JSUB spop
 	+LDX @stkptr
 	JSUB spop
 	+LDL @stkptr
@@ -201,15 +203,19 @@ chkrow
 	+STL @stkptr
 	JSUB spush
 	+STX @stkptr
-	JSUB spush
-	+STA @stkptr
-	JSUB spush
+		JSUB spush
 	+STB @stkptr
 	JSUB spush
 	+STS @stkptr
 	JSUB spush
 	+STT @stkptr
 	JSUB spush
+
+	. Stack variable is used, since this seems like the easiest way
+	. Keep track of the amount of 3+ matches found
+	LDA 	#0
+	+STA 	@stkptr
+	JSUB 	spush
 
 	. L will be used as general purpose register, for short operations (its value does not survive JSUB instructions)
 	. A will be used to load the gem to be compared to value in register S
@@ -245,6 +251,13 @@ chkrnomatch
 	LDL 	#3
 	COMPR 	T, L . if 3 are matched we will need to destroy them
 	JLT		chkrnodestroy
+. Increment stack variable keeping track of how many valid moves were performed
+	JSUB 	spop
+	+LDA 	@stkptr
+	ADD 	#1
+	+STA 	@stkptr
+	JSUB 	spush
+	. Destroy the gems
 	JSUB 	hgemdestroy
 chkrnodestroy
 	RMO 	A, S
@@ -259,7 +272,12 @@ chkrend
 	. At the end of the row check if we matched all of them by chance
 	LDL 	#3
 	COMPR 	T, L . if 3 are matched we will need to destroy them
+. Final load in of the stack variable
+	JSUB 	spop
+	+LDA 	@stkptr
 	JLT		chkreend
+. Increment the stack variable
+	ADD 	#1
 	JSUB 	hgemdestroy
 
 chkreend
@@ -269,9 +287,7 @@ chkreend
 	+LDS @stkptr
 	JSUB spop
 	+LDB @stkptr
-	JSUB spop
-	+LDA @stkptr
-	JSUB spop
+		JSUB spop
 	+LDX @stkptr
 	JSUB spop
 	+LDL @stkptr
@@ -283,15 +299,19 @@ chkcol
 	+STL @stkptr
 	JSUB spush
 	+STX @stkptr
-	JSUB spush
-	+STA @stkptr
-	JSUB spush
+		JSUB spush
 	+STB @stkptr
 	JSUB spush
 	+STS @stkptr
 	JSUB spush
 	+STT @stkptr
 	JSUB spush
+
+	. Stack variable is used, since this seems like the easiest way
+	. Keep track of the amount of 3+ matches found
+	LDA 	#0
+	+STA 	@stkptr
+	JSUB 	spush
 
 	. L will be used as general purpose register, for short operations (its value does not survive JSUB instructions)
 	. A will be used to load the gem to be compared to value in register S
@@ -325,6 +345,13 @@ chkcnomatch
 	LDL 	#3
 	COMPR 	T, L . if 3 are matched we will need to destroy them
 	JLT		chkcnodestroy
+. Increment stack variable keeping track of how many valid moves were performed
+	JSUB 	spop
+	+LDA 	@stkptr
+	ADD 	#1
+	+STA 	@stkptr
+	JSUB 	spush
+	. Destroy the gems
 	JSUB 	vgemdestroy
 chkcnodestroy
 	RMO 	A, S
@@ -341,7 +368,12 @@ chkcend
 	. At the end of the row check if we matched all of them by chance
 	LDL 	#3
 	COMPR 	T, L . if 3 are matched we will need to destroy them
+. Final load in of the stack variable
+	JSUB 	spop
+	+LDA 	@stkptr
 	JLT		chkceend
+. Increment the stack variable
+	ADD 	#1
 	JSUB 	vgemdestroy
 
 chkceend
@@ -351,9 +383,7 @@ chkceend
 	+LDS @stkptr
 	JSUB spop
 	+LDB @stkptr
-	JSUB spop
-	+LDA @stkptr
-	JSUB spop
+		JSUB spop
 	+LDX @stkptr
 	JSUB spop
 	+LDL @stkptr
