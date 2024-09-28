@@ -246,6 +246,8 @@ chkrow
 chkrlp
 	. Load in a gem
 	+LDCH 	board, X
+	COMP 	#cubeid
+	JEQ 	chkrnomatch
 	COMPR 	A, S
 	JEQ 	chkrismatch
 	J 		chkrnomatch
@@ -414,6 +416,16 @@ hgemdestroy
 
 	RMO 	X, B
 	SUBR 	T, X
+
+	. Check if a cube should be created (power up)
+	RMO 	T, A
+	COMP 	#5
+	JLT 	hgdlp
+	. Change to a cube and skip marking as destroyed
+	LDCH 	#cubeid
+	JSUB 	chgem
+	TIXR 	B
+
 hgdlp
 	. Mark gem as destroyed
 		JSUB 	markgemdes
@@ -451,6 +463,18 @@ vgemdestroy
 	LDA 	#8
 	MULR 	A, T
 	SUBR 	T, X
+
+	. Check if a cube was created (power up)
+	RMO 	T, A
+	DIV 	#8
+	COMP 	#5
+	JLT 	vgdlp
+	. Change to a cube and skip marking as destroyed
+	LDCH 	#cubeid
+	JSUB 	chgem
+	LDA 	#8
+	ADDR 	A, X
+
 vgdlp
 	. Mark gem as destroyed
 		JSUB 	markgemdes
@@ -460,6 +484,52 @@ vgdlp
 	. Check if we need to delete more gems
 	COMPR 	X, B
 	JLT 	vgdlp
+
+	JSUB spop
+	+LDT @stkptr
+	JSUB spop
+	+LDB @stkptr
+	JSUB spop
+	+LDA @stkptr
+	JSUB spop
+	+LDX @stkptr
+	JSUB spop
+	+LDL @stkptr
+	RSUB
+	
+. Activates the cubes power and destroys all gems of the specified color
+. A color to destroy
+. X index of used cube on board
+dstcube
+	+STL @stkptr
+	JSUB spush
+	+STX @stkptr
+	JSUB spush
+	+STA @stkptr
+	JSUB spush
+	+STB @stkptr
+	JSUB spush
+	+STT @stkptr
+	JSUB spush
+
+	. Mark the cube as destroyed
+	JSUB 	markgemdes
+	RMO 	A, B
+	+LDS 	#cubeid
+	LDX 	#0
+dstclp
+	COMPR 	B, S
+	JEQ 	dstcdst
+	+LDCH 	board, X
+	COMPR 	A, B
+	JLT 	dstclend
+	JGT 	dstclend
+dstcdst
+	. Gem is the correct color and should be destroyed
+	JSUB 	markgemdes
+dstclend
+	TIX 	#64
+	JLT 	dstclp
 
 	JSUB spop
 	+LDT @stkptr
@@ -647,11 +717,17 @@ swpgem
 	. load first gem
 	RMO 	S, X
 	+LDCH 	board, X
+. Checking for cube match
+	COMP 	#cubeid
+	JEQ 	swpc1
 	. store the gem in B
 	RMO 	A, B
 	. load second gem
 	RMO 	T, X
 	+LDCH 	board, X
+. Checking for cube match
+	COMP 	#cubeid
+	JEQ 	swpc2
 	. change the first gem index to the second gem
 	RMO 	S, X
 	JSUB 	chgem
@@ -659,7 +735,23 @@ swpgem
 	RMO 	B, A
 	RMO 	T, X
 	JSUB 	chgem
+J 		swpgend
 
+swpc1
+	RMO 	T, X
+	+LDCH 	board, X
+	RMO 	S, X
+	JSUB 	dstcube
+	J 		swpgend
+
+swpc2
+	RMO 	S, X
+	+LDCH 	board, X
+	RMO 	T, X
+	JSUB 	dstcube
+	J 		swpgend
+
+swpgend
 	JSUB spop
 	+LDS @stkptr
 	JSUB spop
@@ -1496,6 +1588,8 @@ seed	WORD	0x1234
 shrmsk 	WORD 	0x7FFFFF . shift right introduces a 1, for this algorithm we can't have that happend
 xora	RESW 	1
 xorb	RESW 	2
+
+cubeid	EQU 	0x7
 
 gemdst  EQU 	8
 maxgem 	EQU 	7
