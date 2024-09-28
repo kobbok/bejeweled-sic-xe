@@ -558,13 +558,6 @@ handlekb
 	+STT @stkptr
 	JSUB spush
 
-kbnoin
-	+LDCH 	kbptr
-	COMP	#0
-	JEQ		kbnoin
-	J 		kbgotin
-
-kbgotin
 	+LDA 	gemsel
 	COMP 	#0
 	JEQ		pregemsel
