@@ -1,6 +1,8 @@
 # Bejeweled
 
 The classic game of Bejeweled (aka match 3 gems) written in SIC/XE.
+Match 3 or more gems to "destroy" them. Destroyed gems are removed from the board, the gems above the destroyed gems "fall" down and new gems get generated to fill the now empty space at the top of columns containing destroyed gems.
+Matching 5 or more gems will cause a "hyper cube" to be created. This hyper cube can be matched with any gem color, to destroy all gems of that color currently on the board. Matching two hyper cubes will ||clear the entire board||.
 
 ## Setup
 The `sictools.jar` is the recommended tool to use for running the game.
