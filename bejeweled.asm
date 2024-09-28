@@ -50,7 +50,7 @@ pdlp
 
 	LDX 	#0
 pdrelp
-	+LDCH 	board, X
+	+LDCH 	brdval, X
 	COMP 	#gemdst
 	JLT 	pdrcnt
 	JGT 	pdrcnt
@@ -101,9 +101,11 @@ prcdecol
 	. To keep track of where the next gem found should be placed
 	RMO 	X, T
 pdclop
-	+LDCH 	board, X
+	+LDCH 	brdval, X
 	COMP 	#gemdst
 	JEQ 	pdccnt
+. Load in actual gem
+	+LDCH 	board, X
 
 	. gem found, put it in the next available spot
 	. check if it is already in the correct spot
@@ -131,7 +133,7 @@ pdccnt
 	RMO 	T, X
 pdcelp
 	LDCH 	#gemdst
-	JSUB 	chgem
+	+STCH 	brdval, X
 	LDA 	#8
 	SUBR 	A, X
 	COMPR 	X, B
@@ -408,8 +410,7 @@ hgemdestroy
 	SUBR 	T, X
 hgdlp
 	. Mark gem as destroyed
-	LDCH 	#gemdst
-	JSUB 	chgem
+		JSUB 	markgemdes
 	TIXR 	B
 	JLT 	hgdlp
 
@@ -446,8 +447,7 @@ vgemdestroy
 	SUBR 	T, X
 vgdlp
 	. Mark gem as destroyed
-	LDCH 	#gemdst
-	JSUB 	chgem
+		JSUB 	markgemdes
 	. Move 1 down
 	LDA 	#8
 	ADDR 	A, X
@@ -670,8 +670,55 @@ chgem
 	+STA @stkptr
 	JSUB spush
 
+	. DEBUG: Check if in bounds
+	RMO 	X, A
+	COMP 	#0
+	JGT 	chgner
+	JEQ 	chgner
+	COMP 	#63
+	JGT 	chgner
+	JEQ 	chgner
+	JSUB 	err
+
+chgner
+	JSUB spop
+	+LDA @stkptr
+	JSUB spush
+
 	+STCH 	board, X
 	LDCH 	#0
+	+STCH 	brdval, X
+
+	JSUB spop
+	+LDA @stkptr
+	JSUB spop
+	+LDX @stkptr
+	JSUB spop
+	+LDL @stkptr
+	RSUB
+	
+. Mark gem as destroyed
+. X -> board index
+markgemdes
+	+STL @stkptr
+	JSUB spush
+	+STX @stkptr
+	JSUB spush
+	+STA @stkptr
+	JSUB spush
+
+	. DEBUG: Check if in bounds
+	RMO 	X, A
+	COMP 	#0
+	JGT 	mgner
+	JEQ 	mgner
+	COMP 	#63
+	JGT 	mgner
+	JEQ 	mgner
+	JSUB 	err
+
+mgner
+	+LDCH 	#gemdst
 	+STCH 	brdval, X
 
 	JSUB spop
