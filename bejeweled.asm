@@ -546,6 +546,15 @@ postgemsel
 	JEQ 	kbmovesel
 	COMP 	#32	. SPACE
 	JEQ 	kbselectsel
+COMP 	#27 . ESCAPE
+	JEQ 	kbescsel
+	J 		kbend
+
+kbescsel
+	+LDA 	selgem
+	JSUB 	hlgem
+	+LDA 	#0
+	+STA 	gemsel
 	J 		kbend
 
 kbmovesel

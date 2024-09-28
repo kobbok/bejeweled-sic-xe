@@ -14,6 +14,7 @@ The keyboard must be at `0F000` (moved since the graphical screen overlaps it).
 - `d` moves the selection right
 - `s` moves the selection down
 - `space` selects the gem or swaps gems if a gem is already selected
+- `escape` deselects the currently selected gem
 
 ## Sprites
 The game uses sprites for the gems. The sprites are stored in a sprite map (`sprites.bmp`) which is the converted with the `extract.py` script to SIC/XE `BYTE` instructions.
