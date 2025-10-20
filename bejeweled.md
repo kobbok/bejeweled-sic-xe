@@ -22,3 +22,7 @@ Matching 5 or more gems will cause a "hyper cube" to be created. This hyper cube
 The game uses sprites for the gems. The sprites are stored in a sprite map (`sprites.bmp`) which is the converted with the `extract.py` script to SIC/XE `BYTE` instructions.
 
 Sprite drawing is also optimized by drawing up to 6 pixels at a time by abusing the `F` register (with the caveat that some pixel colors cannot be used as their byte representation changes when loaded into the `F` register).
+
+## TODO
+- Moves that dont cause a match should be prevented
+- Flash gems that are destroyed from white to black
