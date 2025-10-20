@@ -5,10 +5,10 @@ Match 3 or more gems to "destroy" them. Destroyed gems are removed from the boar
 Matching 5 or more gems will cause a "hyper cube" to be created. This hyper cube can be matched with any gem color, to destroy all gems of that color currently on the board. Matching two hyper cubes will ||clear the entire board||.
 
 ## Setup
-The `sictools.jar` is the recommended tool to use for running the game.
-The frequency must be set to at least `100000` for acceptable performance.
-The graphical screen must be at `0A000` with a width and height of `128`.
-The keyboard must be at `0F000` (moved since the graphical screen overlaps it).
+- The `sictools.jar` is the recommended tool to use for running the game.
+- The frequency must be set to at least `100000` for acceptable performance.
+- The graphical screen must be at `0A000` with a width and height of `128`.
+- The keyboard must be at `0F000` (moved since the graphical screen overlaps it).
 
 ## Controls
 - `a` moves the selection left
